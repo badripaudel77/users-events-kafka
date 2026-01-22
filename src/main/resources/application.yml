@@ -1,0 +1,35 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: user-events-service
+
+  kafka:
+    bootstrap-servers: localhost:9094
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+    consumer:
+      group-id: user-event-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+
+      properties:
+        spring.json.trusted.packages: edu.miu.ea.kafkaevents.model
+        spring.json.value.default.type: edu.miu.ea.kafkaevents.model.UserRegisteredEvent
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 5
+
+      acks: all
+      retries: 3
+
+app:
+  events:
+    topic: user.emailevents
+
+logging:
+  level:
+    root: info

@@ -1,0 +1,45 @@
+services:
+  kafka:
+    image: apache/kafka:4.1.1
+    container_name: kafka
+    networks:
+      - kafka-net
+    ports:
+      - "9094:9094" # External port for your laptop
+    environment:
+      # Cluster Setup
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      # Since you are using KRaft mode, Kafka needs to manage its own cluster metadata (voting on who is the leader, etc.).
+      # It uses this private port to handle the "brain" work of the cluster.
+      # Kafka talking to itself connect Kafka to itself (Kafka Internals)
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:9093'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+
+      # Listener Logic:
+      # 1. PLAINTEXT (9092) : for n/w connection like kafka UI to connect to kafka
+      # 2. EXTERNAL (9094) : for external connection like my spring boot app
+      KAFKA_LISTENERS: 'PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_LOG4J_LOGGERS: "kafka=INFO,kafka.network=INFO,kafka.cluster=INFO,org.apache.kafka=INFO"
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    networks:
+      - kafka-net
+    ports:
+      - "8080:8080" #Port for UI access
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=local-cluster
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092 # Uses the container name on the shared network
+      - DYNAMIC_CONFIG_ENABLED=true
+    depends_on:
+      - kafka
+
+networks:
+  kafka-net:
+    driver: bridge
