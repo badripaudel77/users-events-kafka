@@ -20,6 +20,9 @@ In a microservices architecture, services often need to communicate asynchronous
 - **Producer**: Publishes a `UserRegisteredEvent` when a user registers.
 - **Consumer**: Listens to the topic and simulates sending a confirmation email.
 
+### Application High Level Working Overview
+![Architecture](https://github.com/badripaudel77/users-events-kafka/blob/main/images/workflow_architecture_kafka.png?raw=true)
+
 ---
 
 ## 🌟 Apache Kafka Features
@@ -53,7 +56,6 @@ We use Docker Compose to spin up a Kafka broker and a UI management tool.
     docker-compose up --build
     ```
     **NOTE:** You can append -d if you want to run in detached mode but you won't see any ongoing logs.
-
 
 2.  **Verify containers are running:**
     ```bash
