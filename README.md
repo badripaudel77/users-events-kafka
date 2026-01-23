@@ -207,3 +207,88 @@ kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic user.emailev
   want all instances to receive the same message (broadcast), use different `groupId`s.
 * **Docker Networking**: Notice `KAFKA_ADVERTISED_LISTENERS`. This is the most common source of pain. It tells clients
   exactly where to find the broker. We use `localhost:9094` for your IDE and `kafka:9092` for internal containers.
+
+
+---
+# 🚀 JVM Observability Stack: Actuator + Prometheus + Grafana
+
+This project implements a full "Observability Pipeline." 
+This part explains how these three tools work together to monitor your Spring Boot application's health, 
+performance, and Kafka integration.
+
+---
+
+## 🏗️ The Architecture
+
+1. **Spring Boot (The Producer):** Generates internal data.
+2. **Prometheus (The Collector):** Periodically pulls and stores that data.
+3. **Grafana (The Visualizer):** Queries Prometheus to create graphs and alerts.
+
+---
+
+## 🛠️ 1. Spring Boot Actuator
+**Concept:** Actuator turns your application into an "open book" by exposing HTTP endpoints that reveal internal state.
+
+### Why we need it:
+* **Visibility:** Without it, you cannot see memory usage, thread counts, or HTTP traffic.
+* **Standardization:** It uses **Micrometer**, a library that acts like "SLF4J but for metrics," allowing you to ship data to Prometheus, Datadog, or New Relic without changing your code.
+
+### Important Endpoints:
+* `/actuator/health`: Checks if the app and its dependencies (DB, Kafka) are alive.
+* `/actuator/prometheus`: The raw data feed formatted specifically for Prometheus scraping.
+
+---
+
+## 🗄️ 2. Prometheus
+**Concept:** A Time-Series Database (TSDB) that uses a **Pull Model**. Instead of your app "sending" data, Prometheus "scrapes" your app.
+
+### Why we need it:
+*  Actuator only shows a snapshot of *now*. Prometheus stores months of data so you can analyze trends (e.g., "Why did the server crash last Sunday?").
+*  Prometheus allows you to filter metrics by tags (e.g: see request counts for only the `/api/v1/users` endpoint).
+
+### Key Concepts:
+* **Scrape Interval:** How often Prometheus visits your app (like 15s or 5s).
+* **PromQL:** The query language used to calculate rates and averages from raw data.
+
+---
+
+## 📊 3. Grafana
+**Concept:** The "Single Pane of Glass." It is a UI that connects to Data Sources to render beautiful, interactive dashboards.
+
+### Why we need it:
+* You can view Kafka consumer lag and JVM memory on the same screen to see if they are related.
+* You can configure Grafana to send Slack/Email notifications if a metric (like Error Rate) crosses a threshold.
+
+---
+
+## 📈 Dashboard & Query Cheat Sheet
+
+### 🚀 Fastest Setup: Import by ID
+In Grafana, go to **Dashboards > Import** and use these IDs to get professional layouts instantly:
+
+| ID | Name | Focus |
+| :--- | :--- | :--- |
+| **11378** | **Spring Boot 3.x** | The best overall dashboard for Spring Boot 3 + Micrometer. |
+| **4701** | **JVM Micrometer** | Focuses on Garbage Collection and Memory "Sawtooth" patterns. |
+| **20784** | **Kafka Consumer** | Essential for monitoring Consumer Lag and throughput. |
+
+### 🔍 Top 3 Essential Queries (PromQL)
+Paste these into the **Explore** tab to see your data manually:
+
+1. **Traffic Volume (Requests Per Second):**
+   `sum(rate(http_server_requests_seconds_count[1m]))`
+
+2. **Memory Health (Heap Usage %):**
+   `jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"}`
+
+3. **Kafka Lag (How far behind is my consumer?):**
+   `sum(kafka_consumer_fetch_manager_records_lag_max)`
+
+---
+
+## 🛠️ Maintenance & Troubleshooting
+* **Status "UP" but no data:** Ensure your `prometheus.yml` targets the correct port (`8081` vs `8080`).
+* **Dashboard showing "N/A":** Ensure you have the `micrometer-registry-prometheus` dependency in your `pom.xml`.
+* **Grafana Error "Failed to fetch":** This is often a browser cache issue with the "Drilldown" plugin. Clear site data or use Incognito mode.
+
+---

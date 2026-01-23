@@ -40,6 +40,38 @@ services:
     depends_on:
       - kafka
 
+#  Prometheus and grafana related configuration
+  prometheus:
+    image: prom/prometheus:v3.9.1
+    container_name: prometheus
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "9090:9090" # access localhost:9090 for promethesu
+    networks:
+      - monitoring
+
+  grafana:
+    image: grafana/grafana:12.3.1
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./docker/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./docker/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./docker/grafana/dashboards:/var/lib/grafana/dashboards
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      # Bypass the drilldown plugin bug:
+      - GF_FEATURE_TOGGLES_ENABLE=pluginsSriChecks:false
+    depends_on:
+      - prometheus
+    networks:
+      - monitoring
+
 networks:
   kafka-net:
+  monitoring:
     driver: bridge
